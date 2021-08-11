@@ -161,7 +161,7 @@ private:
     // フレームレートを 60 に固定
     // フレームレートに依存しない、物理シミュレーションの更新
     double timeDelta = 1.0 / 40.0;
-    TOMLConfig config = TOMLConfig(U"example/config/config.toml");
+    TOMLConfig config = TOMLConfig(U"config.toml");
     WorldObjects worldObjects;
 
     //スコア
