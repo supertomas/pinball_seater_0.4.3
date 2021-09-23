@@ -1,23 +1,23 @@
 #pragma once
 #include<Siv3D.hpp>
 #include"Toml_Load_Function.h"
-// シーンの名前
+// 繧ｷ繝ｼ繝ｳ縺ｮ蜷榊燕
 enum class State
 {
 	Title,
 	Game,
 	GameOver
 };
-// ゲームデータ
+// 繧ｲ繝ｼ繝繝�繝ｼ繧ｿ
 struct GameData
 {
-	//今回のスコア
+	//莉雁屓縺ｮ繧ｹ繧ｳ繧｢
 	int32 now = 0;
-	// ハイスコア
+	// 繝上う繧ｹ繧ｳ繧｢
 	int32 highScore = 0;
 	int32 nowScore = 0;
-	TOMLConfig config =  TOMLConfig(U"example/config/config.toml");
+	TOMLConfig config =  TOMLConfig(U"config.toml");
 };
 
-// シーン管理クラス
+// 繧ｷ繝ｼ繝ｳ邂｡逅�繧ｯ繝ｩ繧ｹ
 using MyApp = SceneManager<State, GameData>;
