@@ -263,13 +263,6 @@ public:
                 timer2.reset();
             }
 
-
-          /*  for (auto& bumper : object_bumpers)
-            {
-                bumper.update();
-            }*/
-
-
             if (ui.life == 0)
             {
                 changeScene(State::GameOver);
@@ -295,14 +288,6 @@ public:
                 circle = Circle(ball.getPos(), 0.6);
             }
         }
-        ClearPrint();
-        Print(worldObjects.getItem);
-        Print(Itemrects);
-        Print(Itemrects.size());
-
-        Print(timer2.isRunning());
-        Print(U"time =" + time);
-        Print(U"timer2 = " + timer2.ms());
     }
 
     void draw() const override
@@ -388,5 +373,4 @@ public:
         FontAsset(U"Score")(U"エンターキーを押してね").drawAt(Scene::Center().x, 400);
     }
 };
-
 
