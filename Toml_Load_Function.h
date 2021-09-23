@@ -2,6 +2,13 @@
 #include<Siv3D.hpp>
 #include"Enemy.h"
 
+struct SpinnerData
+{
+	Vec2 pos;
+	Vec2 adjust;
+	Vec2 size;
+};
+
 class TOMLConfig
 {
 private:
@@ -79,7 +86,6 @@ public:
 
 	Array<Array<Vec2>> LoadStraightFramePos() const
 	{
-
 		Array<Array<Vec2>> Allpoints;
 		Array<Vec2> points;
 
@@ -105,11 +111,11 @@ public:
 		{
 			Vec2 pos;
 			double_t r;
-			int32 angle;
+			double_t angle;
 			OffsetCircular data;
 
 			data = OffsetCircular(Vec2(object[U"pos.x"].get<double_t>(), object[U"pos.y"].get<double_t>())
-				, object[U"r"].get<double_t>(), i * object[U"angle"].get<int32>() * 1_deg);
+				, object[U"r"].get<double_t>(), i * object[U"angle"].get<double_t>() * 1_deg);
 			alldata << data;
 		}
 		return alldata;
@@ -142,7 +148,6 @@ public:
 			try_data << triangle;
 		}
 		return try_data;
-
 	}
 
 	Array<Vec2> LoadRoundbumperData() const
@@ -157,8 +162,15 @@ public:
 		}
 		return Alldata;
 	}
-
-
+	SpinnerData LoadSpinner() const
+	{
+		SpinnerData spinner;
+		spinner.pos.x = m_toml[U"spinnerdata.pos.x"].get<double>();
+		spinner.pos.y = m_toml[U"spinnerdata.pos.y"].get<double>();
+		spinner.adjust = { m_toml[U"spinnerdata.adjust.x"].get<double>(),m_toml[U"spinnerdata.adjust.y"].get<double>() };
+		spinner.size = { m_toml[U"spinnerdata.size.x"].get<double>(),m_toml[U"spinnerdata.size.y"].get<double>(), };
+		return spinner;
+	}
 
 	Array<EnemyData> LoadEnemyData() const
 	{
