@@ -1,12 +1,16 @@
-#pragma once
+﻿#pragma once
 #include"worldObject.h"
 #include"Enemy.h"
 #include"Spring.h"
 #include"Scene_management.h"
+#include"Bubble.h"
 
 class Circle_Light
 {
 public:
+    bool m_shine_circle = false;
+    Stopwatch shine_timer;
+
     Circle_Light(Vec2 _pos, double_t _r, ColorF _color, Circle _ball) :
         pos(_pos),
         r(_r),
@@ -23,20 +27,28 @@ public:
 
     void update(Circle circle)
     {
-        isActive = false;
+        //isActive = false;
 
         if (circle.intersects(getRegion()))
         {
             if (circle.y < before_pos)
             {
-                isActive = true;
+                shine_timer.restart();
+                m_shine_circle = true;
             }
+        }
+        if (shine_timer.s() > 3.0)
+        {
+            shine_timer.reset();
+            m_shine_circle = false;
         }
         before_pos = circle.y;
     }
     void draw() const
     {
-        if (isActive)
+        ClearPrint();
+        Print(shine_timer.s());
+        if (m_shine_circle)
         {
             getRegion().draw(color);
         }
@@ -51,7 +63,6 @@ private:
     ColorF color;
     Circle ball;
     double_t before_pos;
-    bool isActive = false;
 };
 
 
@@ -98,7 +109,12 @@ private:
     double timeDelta = 1.0 / 40.0;
     TOMLConfig config = TOMLConfig(U"example/config/config.toml");
     WorldObjects worldObjects;
+    const Font font = Font(40, U"example/font/LogoTypeGothic/LogoTypeGothic.otf");
 
+    Size size;
+
+
+    BubbleTexture bubbleTexture;
     //スコア
     UI ui;
 
@@ -127,6 +143,8 @@ public:
     Game(const InitData& init)
         : IScene(init)
     {
+        size = Size(840, 680);
+        bubbleTexture = BubbleTexture(size, 10, 40, 2, 6);
         Scene::SetBackground(ColorF(0.2, 0.5, 1.0));
         UpdateWorldObjects(config, worldObjects);
         effectFont = Font(400, Typeface::Heavy);
@@ -150,7 +168,11 @@ public:
     void update() override
     {
 
-
+        // 泡の更新
+        {
+            bubbleTexture.update(Scene::DeltaTime());
+            bubbleTexture.render(ColorF(0.1, 0.3, 0.6));
+        }
         m_collidedIDs.clear();
         if (!config)
         {
@@ -165,30 +187,28 @@ public:
             worldObjects.spinner.spinnerBody = worldObjects.m_world.createDynamicRect(Vec2(config.LoadSpinner().pos), SizeF(config.LoadSpinner().size), P2Material(0.1, 0.0));
             worldObjects.spinner.spinnerJoint = worldObjects.m_world.createPivotJoint(worldObjects.frames[0], worldObjects.spinner.spinnerBody,
                 Vec2(config.LoadSpinner().pos.x + config.LoadSpinner().adjust.x, config.LoadSpinner().pos.y + config.LoadSpinner().adjust.y)).setMaxMotorTorque(0.05).setMotorSpeed(0).setMotorEnabled(true);
-
         }
 
-        // camera.update();
-        {
-            // 左フリッパーの操作
-            worldObjects.flipper.leftFlipper.applyTorque(KeyLeft.pressed() ? -200 : 40);
+ 
+        // 左フリッパーの操作
+        worldObjects.flipper.leftFlipper.applyTorque(KeyLeft.pressed() ? -200 : 40);
 
-            // 右フリッパーの操作
-            worldObjects.flipper.rightFlipper.applyTorque(KeyRight.pressed() ? 200 : -40);
-            for (auto [pair, collision] : worldObjects.m_world.getCollisions())
+        // 右フリッパーの操作
+        worldObjects.flipper.rightFlipper.applyTorque(KeyRight.pressed() ? 200 : -40);
+        for (auto [pair, collision] : worldObjects.m_world.getCollisions())
+        {
+            if (pair.a == ballID)
             {
-                if (pair.a == ballID)
+                m_collidedIDs << pair.b;
+            }
+            else if (pair.b == ballID)
+            {
+                m_collidedIDs << pair.a;
+            }
+            for (size_t i = 0; i < worldObjects.enemy_data.enemies_ids.size(); i++)
+            {
+                if (pair.a == worldObjects.enemy_data.enemies_ids[i] || pair.b == worldObjects.enemy_data.enemies_ids[i])
                 {
-                    m_collidedIDs << pair.b;
-                }
-                else if (pair.b == ballID)
-                {
-                    m_collidedIDs << pair.a;
-                }
-                for (size_t i = 0; i < worldObjects.enemy_data.enemies_ids.size(); i++)
-                {
-                    if (pair.a == worldObjects.enemy_data.enemies_ids[i] || pair.b == worldObjects.enemy_data.enemies_ids[i])
-                    {
                         ui.score += 10;
                         const Vec2 effectpos = ball.getPos().movedBy(0, 100);
                         effect.add<NumberEffect>(effectpos, effectFont, ui.score);
@@ -203,7 +223,7 @@ public:
                         effect.add<NumberEffect>(effectpos, effectFont, ui.score);
                     }
                 }
-            }
+        }
 
 
             // 物理演算ワールドの更新
@@ -273,7 +293,6 @@ public:
                 getData().highScore = ui.score;
             }
             effect.update();
-        }
         if (config.hasUpdate())
         {
             config.reload();
@@ -292,62 +311,69 @@ public:
 
     void draw() const override
     {
+        //const ScopedRenderStates2D rasterizer{ RasterizerState::WireframeCullNone };
+        Circle(Scene::Center(), 800).draw(ColorF(1.0), ColorF(0.1, 0.3, 0.6));
+        bubbleTexture.getTexture().draw();
+        {
+
+
+
+            const auto transformer = camera.createTransformer();
+
+            for (const auto& frame : worldObjects.frames)
+            {
+                frame.draw(Palette::Red);
+            }
+
+            //アイテム描画
+            if (worldObjects.getItem)
+            {
+                worldObjects.bumper_data.Itembumpers.draw(GetColor(worldObjects.bumper_data.Itembumpers, m_collidedIDs, Bumper_Color::Gray));
+            }
+
+
+            for (const auto& frame : worldObjects.frames)
+            {
+                frame.draw(Palette::Yellowgreen);
+            }
+            for (auto& Itemrect : Itemrects)
+            {
+                Itemrect.draw(Palette::Gray);
+            }
+
+
+            // バンパーの描画
+            for (const auto& bumper : worldObjects.bumper_data.bumpers)
+            {
+                bumper.draw(GetColor(bumper, m_collidedIDs, Bumper_Color::Orange));
+            }
+
+
+            circle.draw();
+            for (auto& enemy : worldObjects.enemy_data.enemies)
+            {
+                enemy.draw();
+            }
+
+            for (auto& i : circle_light)
+            {
+                i.draw();
+            }
+            ball.draw(Palette::Black);
+            spring->draw();
+            worldObjects.spinner.spinnerBody.draw(GetColor(worldObjects.spinner.spinnerBody, m_collidedIDs, Bumper_Color::Gray));
+            worldObjects.spinner.spinnerJoint.draw(Palette::Red);
+
+            // フリッパーの描画
+            worldObjects.flipper.leftFlipper.draw(Palette::Orange);
+            worldObjects.flipper.rightFlipper.draw(Palette::Orange);
+
+            //// ジョイントの可視化
+            worldObjects.flipper.leftJoint.draw(Palette::Red);
+            worldObjects.flipper.rightJoint.draw(Palette::Red);
+        }
         ui.score_font(U"{}"_fmt(ui.score)).drawAt({ 700,50 }, Palette::Black);
         ui.life_font(U"{}"_fmt(ui.life)).drawAt({ 50,50 }, Palette::Red);
-
-        const auto transformer = camera.createTransformer();
-        for (const auto& frame : worldObjects.frames)
-        {
-            frame.draw(Palette::Red);
-        }
-
-        //アイテム描画
-        if (worldObjects.getItem)
-        {
-            worldObjects.bumper_data.Itembumpers.draw(GetColor(worldObjects.bumper_data.Itembumpers, m_collidedIDs,Bumper_Color::Gray));
-        }
-
-
-        for (const auto& frame : worldObjects.frames)
-        {
-            frame.draw(Palette::Yellowgreen);
-        }
-        for (auto& Itemrect : Itemrects)
-        {
-            Itemrect.draw(Palette::Gray);
-        }
-
-
-        // バンパーの描画
-        for (const auto& bumper : worldObjects.bumper_data.bumpers)
-        {
-            bumper.draw(GetColor(bumper, m_collidedIDs,Bumper_Color::Orange));
-        }
-
-
-        circle.draw();
-        for (auto& enemy : worldObjects.enemy_data.enemies)
-        {
-            enemy.draw();
-        }
-
-        for (auto& i : circle_light)
-        {
-            i.draw();
-        }
-        ball.draw(Palette::Black);
-        spring->draw();
-        worldObjects.spinner.spinnerBody.draw(GetColor(worldObjects.spinner.spinnerBody, m_collidedIDs,Bumper_Color::Gray));
-        worldObjects.spinner.spinnerJoint.draw(Palette::Red);
-
-        // フリッパーの描画
-        worldObjects.flipper.leftFlipper.draw(Palette::Orange);
-        worldObjects.flipper.rightFlipper.draw(Palette::Orange);
-
-        //// ジョイントの可視化
-        worldObjects.flipper.leftJoint.draw(Palette::Red);
-        worldObjects.flipper.rightJoint.draw(Palette::Red);
-
     }
 };
 
