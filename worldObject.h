@@ -37,7 +37,7 @@ String GetEnemyTexturename(size_t i)
 	const Array<String> names = { U"crab", U"octopus" };
 	return names[i];
 }
-//Enemyã«é–¢ã™ã‚‹ãƒ‡ãƒ¼ã‚¿ã‚’structã«ã¾ã¨ã‚ã‚‹
+//Enemy‚ÉŠÖ‚·‚éƒf[ƒ^‚ğstruct‚É‚Ü‚Æ‚ß‚é
 struct EnemyManager
 {
 	Array<P2Body> P2_enemies;
@@ -46,9 +46,9 @@ struct EnemyManager
 	Array<EnemyData> enemy_data;
 };
 
-//bumperã«é–¢ã™ã‚‹ãƒ‡ãƒ¼ã‚¿ã‚’structã«ã¾ã¨ã‚ã‚‹
+//bumper‚ÉŠÖ‚·‚éƒf[ƒ^‚ğstruct‚É‚Ü‚Æ‚ß‚é
 struct bumperManager {
-	//ãƒãƒ³ãƒ‘ãƒ¼
+	//ƒoƒ“ƒp[
 	Array<P2Body> bumpers;
 	P2Body Itembumpers;
 	Array<P2Body> Round_bumpers;
@@ -60,7 +60,7 @@ struct spinnerObject
 	P2Body spinnerBody;
 	P2PivotJoint spinnerJoint;
 };
-//flipperã«é–¢ã™ã‚‹ãƒ‡ãƒ¼ã‚¿ã‚’structã«ã¾ã¨ã‚ã‚‹
+//flipper‚ÉŠÖ‚·‚éƒf[ƒ^‚ğstruct‚É‚Ü‚Æ‚ß‚é
 struct FlipperManager
 {
 	P2Body leftFlipper, rightFlipper;
@@ -69,7 +69,7 @@ struct FlipperManager
 };
 
 
-/// @brief ç‰©ç†æ¼”ç®—ã«é–¢ã™ã‚‹å…¨ã¦ã®æƒ…å ±ã‚’ç®¡ç†
+/// @brief •¨—‰‰Z‚ÉŠÖ‚·‚é‘S‚Ä‚Ìî•ñ‚ğŠÇ—
 struct WorldObjects
 {
 	P2World m_world = P2World(9.0);
@@ -78,16 +78,16 @@ struct WorldObjects
 	Array<RectF> Itemrects;
 	bumperManager bumper_data;
 
-	//ã‚¢ã‚¤ãƒ†ãƒ ã®å¤‰æ•°
+	//ƒAƒCƒeƒ€‚Ì•Ï”
 	bool getItem = false;
 
-	// å›ºå®šã®æ 
+	// ŒÅ’è‚Ì˜g
 	Array<P2Body> frames;
 
-	////ãƒ•ãƒªãƒƒãƒ‘ãƒ¼
+	////ƒtƒŠƒbƒp[
 	FlipperManager flipper;
 
-	//ã‚¹ãƒ”ãƒŠãƒ¼
+	//ƒXƒsƒi[
 	spinnerObject spinner;
 
 	void clear()
@@ -102,8 +102,8 @@ struct WorldObjects
 
 };
 
-/// @brief ã‚³ãƒ³ãƒ•ã‚£ã‚°ã‚’ã‚‚ã¨ã« WorldObjects ã‚’æ›´æ–°ã™ã‚‹
-/// @param config ã‚³ãƒ³ãƒ•ã‚£ã‚°
+/// @brief ƒRƒ“ƒtƒBƒO‚ğ‚à‚Æ‚É WorldObjects ‚ğXV‚·‚é
+/// @param config ƒRƒ“ƒtƒBƒO
 /// @param worldObjects WorldObjects
 void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
 {
@@ -116,10 +116,10 @@ void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
 	Array<P2Body> frames2;
 	//Array<>
 
-	// å¤–å‘¨
-	// å·¦ä¸Šã®
+	// ŠOü
+	// ¶ã‚Ì
 	int deg = 240;
-	//ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒªãƒ­ãƒ¼ãƒ‰
+	//ƒtƒŒ[ƒ€‚ÌƒŠƒ[ƒh
 	for (size_t i = 0; i < frames.size(); i++)
 	{
 		worldObjects.frames << worldObjects.m_world.createStaticLineString(Vec2(0, 0),
@@ -142,7 +142,7 @@ void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
 			LineString(Range(range[i].x, range[i].y).map([=](int32 j)
 				{ return  OffsetCircular(config.LoadRoundFrameData(j)[i]).toVec2(); })));
 	}
-	//ãƒãƒ³ãƒ‘ãƒ¼ã®ãƒªãƒ­ãƒ¼ãƒ‰
+	//ƒoƒ“ƒp[‚ÌƒŠƒ[ƒh
 	for (size_t i = 0; i < triangle.size(); i++)
 	{
 		worldObjects.bumper_data.bumpers << worldObjects.m_world.createStaticTriangle(Vec2(0, 0), Triangle(triangle[i]), P2Material(1.0, 0.8));
@@ -161,9 +161,9 @@ void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
 	worldObjects.spinner.spinnerJoint = worldObjects.m_world.createPivotJoint(worldObjects.frames[0], worldObjects.spinner.spinnerBody,
 		Vec2(config.LoadSpinner().pos.x + config.LoadSpinner().adjust.x, config.LoadSpinner().pos.y + config.LoadSpinner().adjust.y)).setMaxMotorTorque(0.05).setMotorSpeed(0).setMotorEnabled(true);
 
-	// ã‚¹ãƒ”ãƒŠãƒ¼ã®ã‚¸ãƒ§ã‚¤ãƒ³ãƒˆ
+	// ƒXƒsƒi[‚ÌƒWƒ‡ƒCƒ“ƒg
 
-	//æ•µã®ãƒªãƒ­ãƒ¼ãƒ‰
+	//“G‚ÌƒŠƒ[ƒh
 	for (size_t i = 0; i < enemy.size(); i++)
 	{
 		worldObjects.enemy_data.P2_enemies << worldObjects.m_world.createStaticQuad(Vec2(0, 0), Quad((RectF(enemy[i].rect.x,
