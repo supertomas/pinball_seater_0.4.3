@@ -8,7 +8,14 @@ void Main()
     FontAsset::Register(U"Title", 120, U"example/font/AnnyantRoman/AnnyantRoman.ttf");
     FontAsset::Register(U"Menu", 30, Typeface::Regular);
     FontAsset::Register(U"Score", 36, Typeface::Bold);
-
+    AudioAsset::Register(U"sound1", U"Sound/sample2.mp3");
+    AudioAsset::Register(U"sound2", U"Sound/sample5.mp3");
+    AudioAsset::Register(U"sound3", U"Sound/kani_impulse.mp3");
+    AudioAsset::Register(U"sound4", U"Sound/tako_impulse.mp3");
+    AudioAsset::Register(U"sound5", U"Sound/get.mp3");
+    TextureAsset::Register(U"sumitama", U"Images/墨玉.png");
+    TextureAsset::Register(U"sumi", U"Images/墨透過.png");
+    TextureAsset::Register(U"bubble", U"Images/bubble.png");
     // 背景色を設定
   //  Scene::SetBackground(ColorF(0.2, 0.8, 0.4));
 

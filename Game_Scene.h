@@ -5,69 +5,6 @@
 #include"Scene_management.h"
 #include"Bubble.h"
 
-class Circle_Light
-{
-public:
-    bool m_shine_circle = false;
-    Stopwatch shine_timer;
-
-    Circle_Light(Vec2 _pos, double_t _r, ColorF _color, Circle _ball) :
-        pos(_pos),
-        r(_r),
-        color(_color),
-        ball(_ball)
-    {
-
-    }
-
-    Circle getRegion() const
-    {
-        return Circle(pos, r);
-    }
-
-    void update(Circle circle)
-    {
-        //isActive = false;
-
-        if (circle.intersects(getRegion()))
-        {
-            if (circle.y < before_pos)
-            {
-                shine_timer.restart();
-                m_shine_circle = true;
-            }
-        }
-        if (shine_timer.s() > 3.0)
-        {
-            shine_timer.reset();
-            m_shine_circle = false;
-        }
-        before_pos = circle.y;
-    }
-    void draw() const
-    {
-        ClearPrint();
-        Print(shine_timer.s());
-        if (m_shine_circle)
-        {
-            getRegion().draw(color);
-        }
-        else
-        {
-            getRegion().draw();
-        }
-    }
-private:
-    Vec2 pos;
-    double_t r;
-    ColorF color;
-    Circle ball;
-    double_t before_pos;
-};
-
-
-
-
 struct NumberEffect : IEffect
 {
     Vec2 m_start;
@@ -118,25 +55,26 @@ private:
     //スコア
     UI ui;
 
-    Stopwatch timer;
-    Stopwatch timer2;
+    Stopwatch ItemGetTimer;
+    Stopwatch ItemDurationTimer;
+    Stopwatch SumiTimer;
     int32 time = 0;
     bool isActive = false;
     // ボール 〇 ばね
     double_t init_pos = -7.0, spring_pos = -7.0;
-    P2Body ball;
-    Circle circle;
-    Array<Circle_Light> circle_light;
+    P2Body Physics_ball;
+    Circle circle_ball;
     P2BodyID ballID;
     std::unique_ptr<Spring> spring;
     Array<RectF> Itemrects;
     //カメラ
     Camera2D camera = Camera2D(Vec2(0, -8), 24.0);
+
     int32 ItemID = 0;
     Effect effect;
     Font effectFont;
     bool first = true;
-
+    bool Intersect_Sumi = false;
 public:
     Array<P2BodyID> m_collidedIDs;
 
@@ -146,28 +84,28 @@ public:
         size = Size(840, 680);
         bubbleTexture = BubbleTexture(size, 10, 40, 2, 6);
         Scene::SetBackground(ColorF(0.2, 0.5, 1.0));
-        UpdateWorldObjects(config, worldObjects);
+        circle_ball = Circle(Physics_ball.getPos(), 0.6);
+        Physics_ball = worldObjects.m_world.createDynamicCircle(Vec2(15.0, -10), 0.55, P2Material(0.05, 0.0));
+        ballID = Physics_ball.id();
+        UpdateWorldObjects(config, worldObjects,circle_ball);
         effectFont = Font(400, Typeface::Heavy);
         Graphics::SetTargetFrameRateHz(60);
-        ball = worldObjects.m_world.createDynamicCircle(Vec2(15.0, -10), 0.55, P2Material(0.05, 0.0));
-        ballID = ball.id();
-        circle = Circle(ball.getPos(), 0.6);
         Itemrects.push_back(config.LoadItemRect()[0]);
-        spring = std::make_unique<Spring>(worldObjects.m_world, init_pos, ball, ballID, spring_pos);
+        spring = std::make_unique<Spring>(worldObjects.m_world, init_pos, Physics_ball, ballID, spring_pos);
         TextureAsset::Register(U"crab", Emoji(U"🦀"));
         TextureAsset::Register(U"octopus", Emoji(U"🐙"));
         ui.score_font = Font(100);
         ui.score = 0;
         ui.life_font = Font(70);
         ui.life = 5;
-        circle_light << Circle_Light({ -11,-18 }, 0.7, ColorF(0.4, 0.2, 0.9), circle);
-        circle_light << Circle_Light({ 11,-18 }, 0.7, ColorF(0.4, 0.2, 0.9), circle);
+
     }
 
 
     void update() override
     {
-
+       /* ClearPrint();
+        Print(worldObjects.bumper_data.bumper_id.size());*/
         // 泡の更新
         {
             bubbleTexture.update(Scene::DeltaTime());
@@ -179,7 +117,7 @@ public:
             return;
         }
 
-        if (first && ball.getPos().y > -10.0 && ball.getPos().x < 0.0)
+        if (first && Physics_ball.getPos().y > -10.0 && Physics_ball.getPos().x < 0.0)
         {
             first = false;
             worldObjects.spinner.spinnerJoint = P2PivotJoint{};
@@ -210,50 +148,72 @@ public:
                 if (pair.a == worldObjects.enemy_data.enemies_ids[i] || pair.b == worldObjects.enemy_data.enemies_ids[i])
                 {
                         ui.score += 10;
-                        const Vec2 effectpos = ball.getPos().movedBy(0, 100);
+                        const Vec2 effectpos = Physics_ball.getPos().movedBy(0, 100);
                         effect.add<NumberEffect>(effectpos, effectFont, ui.score);
-                    }
+                        if (worldObjects.enemy_data.enemies_ids[i] == worldObjects.enemy_data.P2_enemies[0].id())
+                        {
+                            AudioAsset(U"sound3").play();
+                        }
+                        else if (worldObjects.enemy_data.enemies_ids[i] == worldObjects.enemy_data.P2_enemies[1].id())
+                        {
+                            AudioAsset(U"sound4").play();
+                        }
                 }
-                for (size_t i = 0; i < worldObjects.bumper_data.bumper_id.size(); i++)
+            }
+
+            for (size_t i = 0; i < worldObjects.bumper_data.bumper_id.size(); i++)
+            {
+                if (pair.a == worldObjects.bumper_data.bumper_id[i] || pair.b == worldObjects.bumper_data.bumper_id[i])
                 {
-                    if (pair.a == worldObjects.bumper_data.bumper_id[i] || pair.b == worldObjects.bumper_data.bumper_id[i])
-                    {
-                        ui.score += 5;
-                        const Vec2 effectpos = ball.getPos().movedBy(0, 100);
-                        effect.add<NumberEffect>(effectpos, effectFont, ui.score);
-                    }
+                    ui.score += 5;
+                    AudioAsset(U"sound1").play();
+                    const Vec2 effectpos = Physics_ball.getPos().movedBy(0, 100);
+                    effect.add<NumberEffect>(effectpos, effectFont, ui.score);
                 }
+            }
+            if (pair.a == worldObjects.bumper_data.Itembumpers.id() || pair.b == worldObjects.bumper_data.Itembumpers.id())
+            {
+                AudioAsset(U"sound1").play();
+            }
+            for (size_t i = 0; i < worldObjects.bumper_data.Trianglebumpers.size(); i++)
+            {
+                if (pair.a == worldObjects.bumper_data.Trianglebumpers[i].id() || pair.b == worldObjects.bumper_data.Trianglebumpers[i].id())
+                {
+                    AudioAsset(U"sound1").play();
+                }
+            }
+        }
+
+       
+        
+        // 物理演算ワールドの更新
+        worldObjects.m_world.update(timeDelta, 24, 12);
+        //物理演算の更新の下にcameraをsetしなければならない
+        circle_ball.setPos(Physics_ball.getPos());
+        camera.setCenter(Physics_ball.getPos());
+        for (auto& i :worldObjects.circle_lights)
+        {
+            i.update(circle_ball);
         }
 
 
-            // 物理演算ワールドの更新
-            worldObjects.m_world.update(timeDelta, 24, 12);
-            //物理演算の更新の下にcameraをsetしなければならない
-            circle.setPos(ball.getPos());
-            camera.setCenter(ball.getPos());
-            for (auto& i : circle_light)
+       
+            for (size_t i = 0; i < worldObjects.enemy_data.enemies.size(); i++)
             {
-                i.update(circle);
-            }
+                worldObjects.enemy_data.enemies[i].update(worldObjects.circle_lights[i].m_shine_circle, circle_ball,&Intersect_Sumi,&ui.score);
 
-            if (ball.getPos().y > 10)
-            {
-                ball = worldObjects.m_world.createDynamicCircle(Vec2(15.0, -10), 0.55, P2Material(0.05, 0.0));
-                ballID = ball.id();
-                spring->ballID = ballID;
-                spring->ball = ball;
-                ui.life--;
-                first = true;
             }
-
             spring->update();
+
+            //アイテムを取った時の処理
             for (auto it = Itemrects.begin(); it != Itemrects.end();)
             {
-                if (it->intersects(circle))
+                if (it->intersects(circle_ball))
                 {
                     it = Itemrects.erase(it);
                     worldObjects.getItem = true;
-                    timer.restart();
+                    AudioAsset(U"sound5").play();
+                    ItemGetTimer.restart();
                 }
                 else
                 {
@@ -261,38 +221,52 @@ public:
                 }
             }
 
-            if (timer.s() > 10)
+            if (ItemGetTimer.s() > 10)
             {
                 worldObjects.getItem = false;
-                timer.reset();
+                ItemGetTimer.reset();
                 time = Random(10, 25);
-                timer2.restart();
+                ItemDurationTimer.restart();
                 worldObjects.bumper_data.Itembumpers = P2Body{};
             }
 
             if (worldObjects.bumper_data.Itembumpers.isEmpty() && worldObjects.getItem)
             {
                 worldObjects.bumper_data.Itembumpers = worldObjects.m_world.createStaticRect(Vec2(config.loadStraightBumper().pos), RectF(0, 0, { config.loadStraightBumper().size }), P2Material(2.65, 2.65));
-                ItemID = worldObjects.bumper_data.bumpers.size() - 1;
+                ItemID = worldObjects.bumper_data.Trianglebumpers.size() - 1;
             }
 
-            if (timer2.isRunning() && timer2.s() > time)
+            if (ItemDurationTimer.isRunning() && ItemDurationTimer.s() > time)
             {
                 int32 rand = Random(0, 2);
                 Itemrects.push_back(config.LoadItemRect()[rand]);
-                timer2.reset();
+                ItemDurationTimer.reset();
             }
 
-            if (ui.life == 0)
-            {
-                changeScene(State::GameOver);
-            }
-            getData().nowScore = ui.score;
-            if (ui.score > getData().highScore)
-            {
-                getData().highScore = ui.score;
-            }
-            effect.update();
+            
+        effect.update();
+    
+        //ボールが下に落ちた時の処理
+        if (Physics_ball.getPos().y > 10)
+        {
+            Physics_ball = worldObjects.m_world.createDynamicCircle(Vec2(15.0, -10), 0.55, P2Material(0.05, 0.0));
+            ballID = Physics_ball.id();
+            spring->ballID = ballID;
+            spring->ball = Physics_ball;
+            ui.life--;
+            first = true;
+        }
+        //GameOver時の処理
+        if (ui.life == 0)
+        {
+            changeScene(State::GameOver);
+        }
+        getData().nowScore = ui.score;
+        if (ui.score > getData().highScore)
+        {
+            getData().highScore = ui.score;
+        }
+        //toml更新、オブジェクトのサイズを実行中に変えた場合の処理
         if (config.hasUpdate())
         {
             config.reload();
@@ -300,11 +274,11 @@ public:
             {
                 worldObjects.clear();
                 WorldObjects tmp;
-                UpdateWorldObjects(config, tmp);
+                UpdateWorldObjects(config, tmp, circle_ball);
                 worldObjects = tmp;
-                ball = worldObjects.m_world.createDynamicCircle(Vec2(ball.getPos()), 0.55, P2Material(0.05, 0.0));
-                spring = std::make_unique<Spring>(worldObjects.m_world, init_pos, ball, ballID, spring_pos);
-                circle = Circle(ball.getPos(), 0.6);
+                Physics_ball = worldObjects.m_world.createDynamicCircle(Vec2(Physics_ball.getPos()), 0.55, P2Material(0.05, 0.0));
+                spring = std::make_unique<Spring>(worldObjects.m_world, init_pos, Physics_ball, ballID, spring_pos);
+                circle_ball = Circle(Physics_ball.getPos(), 0.6);
             }
         }
     }
@@ -315,9 +289,6 @@ public:
         Circle(Scene::Center(), 800).draw(ColorF(1.0), ColorF(0.1, 0.3, 0.6));
         bubbleTexture.getTexture().draw();
         {
-
-
-
             const auto transformer = camera.createTransformer();
 
             for (const auto& frame : worldObjects.frames)
@@ -343,23 +314,26 @@ public:
 
 
             // バンパーの描画
-            for (const auto& bumper : worldObjects.bumper_data.bumpers)
+            for (const auto& bumper : worldObjects.bumper_data.Trianglebumpers)
+            {
+                bumper.draw(GetColor(bumper, m_collidedIDs, Bumper_Color::Orange));
+            }
+            for (const auto& bumper : worldObjects.bumper_data.Round_bumpers)
             {
                 bumper.draw(GetColor(bumper, m_collidedIDs, Bumper_Color::Orange));
             }
 
-
-            circle.draw();
+            circle_ball.draw();
             for (auto& enemy : worldObjects.enemy_data.enemies)
             {
                 enemy.draw();
             }
 
-            for (auto& i : circle_light)
+            for (auto& i : worldObjects.circle_lights)
             {
                 i.draw();
             }
-            ball.draw(Palette::Black);
+            Physics_ball.draw(Palette::Black);
             spring->draw();
             worldObjects.spinner.spinnerBody.draw(GetColor(worldObjects.spinner.spinnerBody, m_collidedIDs, Bumper_Color::Gray));
             worldObjects.spinner.spinnerJoint.draw(Palette::Red);
@@ -372,6 +346,14 @@ public:
             worldObjects.flipper.leftJoint.draw(Palette::Red);
             worldObjects.flipper.rightJoint.draw(Palette::Red);
         }
+        
+
+
+        if (Intersect_Sumi)
+        {
+            Rect(170, 100, 500, 500)(TextureAsset(U"sumi")).draw();
+        }
+                 
         ui.score_font(U"{}"_fmt(ui.score)).drawAt({ 700,50 }, Palette::Black);
         ui.life_font(U"{}"_fmt(ui.life)).drawAt({ 50,50 }, Palette::Red);
     }

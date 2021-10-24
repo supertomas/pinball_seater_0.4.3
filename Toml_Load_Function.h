@@ -162,6 +162,7 @@ public:
 		}
 		return Alldata;
 	}
+
 	SpinnerData LoadSpinner() const
 	{
 		SpinnerData spinner;

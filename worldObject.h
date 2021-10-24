@@ -49,7 +49,7 @@ struct EnemyManager
 //bumperに関するデータをstructにまとめる
 struct bumperManager {
 	//バンパー
-	Array<P2Body> bumpers;
+	Array<P2Body> Trianglebumpers;
 	P2Body Itembumpers;
 	Array<P2Body> Round_bumpers;
 	Array<P2BodyID> bumper_id;
@@ -69,7 +69,7 @@ struct FlipperManager
 };
 
 
-/// @brief 物理演算に関する全ての情報を管理
+/// @brief ピンボールの盤面上に存在する物理演算に関するオブジェクトを含めた全ての情報を管理
 struct WorldObjects
 {
 	P2World m_world = P2World(9.0);
@@ -77,6 +77,7 @@ struct WorldObjects
 	EnemyManager enemy_data;
 	Array<RectF> Itemrects;
 	bumperManager bumper_data;
+	Array<Circle_Light> circle_lights;
 
 	//アイテムの変数
 	bool getItem = false;
@@ -105,7 +106,7 @@ struct WorldObjects
 /// @brief コンフィグをもとに WorldObjects を更新する
 /// @param config コンフィグ
 /// @param worldObjects WorldObjects
-void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
+void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects, Circle ball)
 {
 	Array<Array<Vec2>> frames = config.LoadStraightFramePos();
 	Array<Vec2> RoundBumper = config.LoadRoundbumperData();
@@ -114,20 +115,18 @@ void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
 	Array<EnemyData> enemy = config.LoadEnemyData();
 	spinnerObject spinner;
 	Array<P2Body> frames2;
-	//Array<>
 
-	// 外周
-	// 左上の
+	//circle_lightは物理演算ではないがコードの都合上この関数で定義してインスタンスを作成
+	worldObjects.circle_lights << Circle_Light({ -11,-20 }, 0.7, ColorF(0.4, 0.2, 0.9), ball);
+	worldObjects.circle_lights << Circle_Light({ 11,-20 }, 0.7, ColorF(0.4, 0.2, 0.9), ball);
+
+
 	int deg = 240;
 	//フレームのリロード
 	for (size_t i = 0; i < frames.size(); i++)
 	{
 		worldObjects.frames << worldObjects.m_world.createStaticLineString(Vec2(0, 0),
 			LineString({ frames[i] }));
-	}
-	for (size_t i = 0; i < RoundBumper.size(); i++)
-	{
-		worldObjects.bumper_data.bumpers << worldObjects.m_world.createStaticCircle(Vec2(RoundBumper[i]), 0.9, P2Material(0.65, 0.65));
 	}
 
 	worldObjects.frames << worldObjects.m_world.createStaticLineString(Vec2(0, 0), LineString(CreateLeftFrame(worldObjects.flipper.leftFlipperAnchor)));
@@ -145,7 +144,7 @@ void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
 	//バンパーのリロード
 	for (size_t i = 0; i < triangle.size(); i++)
 	{
-		worldObjects.bumper_data.bumpers << worldObjects.m_world.createStaticTriangle(Vec2(0, 0), Triangle(triangle[i]), P2Material(1.0, 0.8));
+		worldObjects.bumper_data.Trianglebumpers << worldObjects.m_world.createStaticTriangle(Vec2(0, 0), Triangle(triangle[i]), P2Material(1.0, 0.8));
 	}
 
 	if (worldObjects.bumper_data.Itembumpers.isEmpty() && worldObjects.getItem)
@@ -154,7 +153,9 @@ void UpdateWorldObjects(const TOMLConfig& config, WorldObjects& worldObjects)
 	}
 	for (size_t i = 0; i < config.LoadRoundbumperData().size(); i++)
 	{
-		worldObjects.bumper_data.bumpers << worldObjects.m_world.createStaticCircle(Vec2(config.LoadRoundbumperData()[i]), 0.9, P2Material(0.65, 0.65));
+		worldObjects.bumper_data.Round_bumpers << worldObjects.m_world.createStaticCircle(Vec2(config.LoadRoundbumperData()[i]), 0.9, P2Material(0.65, 0.65));
+		worldObjects.bumper_data.bumper_id << worldObjects.bumper_data.Round_bumpers[i].id();
+
 	}
 
 	worldObjects.spinner.spinnerBody = worldObjects.m_world.createDynamicRect(Vec2(config.LoadSpinner().pos), SizeF(config.LoadSpinner().size), P2Material(0.1, 0.0));
