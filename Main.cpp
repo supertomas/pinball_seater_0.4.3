@@ -13,8 +13,8 @@ void Main()
     AudioAsset::Register(U"sound3", U"Sound/kani_impulse.mp3");
     AudioAsset::Register(U"sound4", U"Sound/tako_impulse.mp3");
     AudioAsset::Register(U"sound5", U"Sound/get.mp3");
-    TextureAsset::Register(U"sumitama", U"Images/墨玉.png");
-    TextureAsset::Register(U"sumi", U"Images/墨透過.png");
+    TextureAsset::Register(U"sumitama", U"Images/sumi_shot.png");
+    TextureAsset::Register(U"sumi", U"Images/sumi.png");
     TextureAsset::Register(U"bubble", U"Images/bubble.png");
     // 背景色を設定
   //  Scene::SetBackground(ColorF(0.2, 0.8, 0.4));
